@@ -17,9 +17,9 @@ import scipy.io
 import time
 import datetime
 
-from utils import reformatInput, load_or_generate_images, iterate_minibatches
+from EEGLearn.utils import reformatInput, load_or_generate_images, iterate_minibatches
 
-from model import build_cnn, build_convpool_conv1d, build_convpool_lstm, build_convpool_mix
+from EEGLearn.model import build_cnn, build_convpool_conv1d, build_convpool_lstm, build_convpool_mix
 
 
 timestamp = datetime.datetime.now().strftime('%Y-%m-%d.%H.%M')
