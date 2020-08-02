@@ -54,7 +54,8 @@ optimizer = tf.train.AdamOptimizer
 num_epochs = 60
 
 def train(images, labels, fold, model_type, batch_size, num_epochs, subj_id=0, reuse_cnn=False, 
-    dropout_rate=dropout_rate ,learning_rate_default=1e-3, Optimizer=tf.train.AdamOptimizer, log_path=log_path):
+    dropout_rate=dropout_rate ,learning_rate_default=1e-3, Optimizer=tf.train.AdamOptimizer, log_path=log_path,
+          width=32, height=32):
     """
     A sample training function which loops over the training set and evaluates the network
     on the validation set after each epoch. Evaluates the network on the training set
@@ -71,7 +72,7 @@ def train(images, labels, fold, model_type, batch_size, num_epochs, subj_id=0, r
     """
 
     with tf.name_scope('Inputs'):
-        input_var = tf.placeholder(tf.float32, [None, None, 32, 32, n_colors], name='X_inputs')
+        input_var = tf.placeholder(tf.float32, [None, None, width, height, n_colors], name='X_inputs')
         target_var = tf.placeholder(tf.int64, [None], name='y_inputs')
         tf_is_training = tf.placeholder(tf.bool, None, name='is_training')
 
