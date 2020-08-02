@@ -2,7 +2,7 @@ from distutils.core import setup
 
 setup(
     name='tf_EEGLearn',
-    version='1.12',
+    version='1.12.1',
     packages=['EEGLearn'],
     url='https://github.com/YangWangsky/tf_EEGLearn',
     license='MIT License',
