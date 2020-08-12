@@ -26,11 +26,15 @@ timestamp = datetime.datetime.now().strftime('%Y-%m-%d.%H.%M')
 log_path = os.path.join("runs", timestamp)
 
 
-model_type = '1dconv'      # ['1dconv', 'maxpool', 'lstm', 'mix', 'cnn']
+model_type = 'cnn'      # ['1dconv', 'maxpool', 'lstm', 'mix', 'cnn']
 log_path = log_path + '_' + model_type
 
 batch_size = 32
+# dropout_rate = 0.5
 dropout_rate = 0.5
+
+# Added decay rate.
+decay_rate = 0.75
 
 input_shape = [32, 32, 3]   # 1024
 nb_class = 4
@@ -40,22 +44,39 @@ n_colors = 3
 reuse_cnn_flag = False
 
 # learning_rate for different models
+"""
 lrs = {
     'cnn': 1e-3,
     '1dconv': 1e-4,
     'lstm': 1e-4,
     'mix': 1e-4,
 }
+"""
 
+
+lrs = {
+    'cnn': 1e-4,
+    '1dconv': 1e-4,
+    'lstm': 1e-5,
+    'mix': 1e-4,
+}
+
+"""
 weight_decay = 1e-4
+learning_rate = lrs[model_type] / 32 * batch_size
+optimizer = tf.train.AdamOptimizer
+"""
+
+weight_decay = 1e-3
 learning_rate = lrs[model_type] / 32 * batch_size
 optimizer = tf.train.AdamOptimizer
 
 num_epochs = 60
 
-def train(images, labels, fold, model_type, batch_size, num_epochs, subj_id=0, reuse_cnn=False, 
-    dropout_rate=dropout_rate ,learning_rate_default=1e-3, Optimizer=tf.train.AdamOptimizer, log_path=log_path,
-          image_size=32):
+def train(images, labels, fold, model_type, batch_size, num_epochs, subj_id=0, reuse_cnn=False,
+          dropout_rate=dropout_rate ,learning_rate_default=1e-3, Optimizer=tf.train.AdamOptimizer,
+          weight_decay=weight_decay, decay_rate=decay_rate, image_size=32, log_path=log_path):
+
     """
     A sample training function which loops over the training set and evaluates the network
     on the validation set after each epoch. Evaluates the network on the training set
@@ -72,7 +93,8 @@ def train(images, labels, fold, model_type, batch_size, num_epochs, subj_id=0, r
     """
 
     with tf.name_scope('Inputs'):
-        input_var = tf.placeholder(tf.float32, [None, None, image_size, image_size, n_colors], name='X_inputs')
+        # input_var = tf.placeholder(tf.float32, [None, None, image_size, image_size, n_colors], name='X_inputs')
+        input_var = tf.placeholder(tf.float32, [None, None, 32, 32, n_colors], name='X_inputs')
         target_var = tf.placeholder(tf.int64, [None], name='y_inputs')
         tf_is_training = tf.placeholder(tf.bool, None, name='is_training')
 
@@ -91,17 +113,17 @@ def train(images, labels, fold, model_type, batch_size, num_epochs, subj_id=0, r
 
     print("Building model and compiling functions...")
     if model_type == '1dconv':
-        network = build_convpool_conv1d(input_var, num_classes, train=tf_is_training, image_size=image_size,
+        network = build_convpool_conv1d(input_var, num_classes, train=tf_is_training, image_size=32,
                             dropout_rate=dropout_rate, name='CNN_Conv1d'+'_sbj'+str(subj_id))
     elif model_type == 'lstm':
-        network = build_convpool_lstm(input_var, num_classes, 100, train=tf_is_training, image_size=image_size,
+        network = build_convpool_lstm(input_var, num_classes, 100, train=tf_is_training, image_size=32,
                             dropout_rate=dropout_rate, name='CNN_LSTM'+'_sbj'+str(subj_id))
     elif model_type == 'mix':
-        network = build_convpool_mix(input_var, num_classes, 100, train=tf_is_training, image_size=image_size,
+        network = build_convpool_mix(input_var, num_classes, 100, train=tf_is_training, image_size=32,
                             dropout_rate=dropout_rate, name='CNN_Mix'+'_sbj'+str(subj_id))
     elif model_type == 'cnn':
         with tf.name_scope(name='CNN_layer'+'_fold'+str(subj_id)):
-            network = build_cnn(input_var, image_size=image_size)  # output shape [None, 4, 4, 128]
+            network = build_cnn(input_var, image_size=32)  # output shape [None, 4, 4, 128]
             convpool_flat = tf.reshape(network, [-1, 4*4*128])
             h_fc1_drop1 = tf.layers.dropout(convpool_flat, rate=dropout_rate, training=tf_is_training, name='dropout_1')
             h_fc1 = tf.layers.dense(h_fc1_drop1, 256, activation=tf.nn.relu, name='fc_relu_256')
@@ -117,6 +139,14 @@ def train(images, labels, fold, model_type, batch_size, num_epochs, subj_id=0, r
 
     with tf.name_scope('Loss'):
         l2_loss = tf.add_n([tf.nn.l2_loss(v) for v in Train_vars if 'kernel' in v.name])
+
+        # TODO: remove this code:
+        print('+' * 100)
+        print(labels.shape)
+        print(target_var.shape)
+        print(prediction.shape)
+        print('+' * 100)
+
         ce_loss = tf.losses.sparse_softmax_cross_entropy(labels=target_var, logits=prediction)
         _loss = ce_loss + weight_decay*l2_loss
 
@@ -129,7 +159,7 @@ def train(images, labels, fold, model_type, batch_size, num_epochs, subj_id=0, r
             learning_rate_default,  # Base learning rate.
             global_steps,
             decay_steps,
-            0.95,  # Decay rate.
+            decay_rate=decay_rate,  # Decay rate.
             staircase=True)
         optimizer = Optimizer(learning_rate)    # GradientDescentOptimizer  AdamOptimizer
         train_op = optimizer.minimize(_loss, global_step=global_steps, var_list=Train_vars)
@@ -280,9 +310,12 @@ def train(images, labels, fold, model_type, batch_size, num_epochs, subj_id=0, r
 
 
 def train_all_model(num_epochs=3000):
+
+    # Parameters defining the default models.
     nums_subject = 13
+
     # Leave-Subject-Out cross validation
-    subj_nums = np.squeeze(scipy.io.loadmat('../SampleData/trials_subNums.mat')['subjectNum'])
+    subj_nums = np.squeeze(scipy.io.loadmat('../SampleData/trials_subNums.mat')['trials_subNums'])
     fold_pairs = []
     for i in np.unique(subj_nums):
         ts = subj_nums == i
