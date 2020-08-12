@@ -74,7 +74,7 @@ optimizer = tf.train.AdamOptimizer
 num_epochs = 60
 
 def train(images, labels, fold, model_type, batch_size, num_epochs, subj_id=0, reuse_cnn=False,
-          dropout_rate=dropout_rate ,learning_rate_default=1e-3, Optimizer=tf.train.AdamOptimizer,
+          dropout_rate=dropout_rate ,learning_rate=learning_rate, learning_rate_default=1e-3, Optimizer=tf.train.AdamOptimizer,
           weight_decay=weight_decay, decay_rate=decay_rate, image_size=32, log_path=log_path):
 
     """
