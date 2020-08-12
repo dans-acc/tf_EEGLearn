@@ -92,6 +92,13 @@ def train(images, labels, fold, model_type, batch_size, num_epochs, subj_id=0, r
     :return: none
     """
 
+    print('Model type: %s' % model_type)
+    print('Images shape: %s\nLabels shape: %s' % (str(images.shape), str(labels.shape)))
+    print('Batch size: %d\nNum epochs: %d' % (batch_size, num_epochs))
+    print('Default learning rate: %.16f\nLearning rate: %.16f' % (learning_rate_default, learning_rate))
+    print('Dropout rate: %.16f\nDecay rate: %.16f\nWeight decay: %.16f' % (dropout_rate, decay_rate, weight_decay))
+
+
     with tf.name_scope('Inputs'):
         # input_var = tf.placeholder(tf.float32, [None, None, image_size, image_size, n_colors], name='X_inputs')
         input_var = tf.placeholder(tf.float32, [None, None, 32, 32, n_colors], name='X_inputs')
