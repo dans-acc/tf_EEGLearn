@@ -65,6 +65,9 @@ def load_data(data_file, classification=True):
     """
     print("Loading data from %s" % (data_file))
     dataMat = scipy.io.loadmat(data_file, mat_dtype=True)
+
+    # Our own mat file contains different keys.
+    dataMat['features'] = dataMat['FeatureMat_timeWin']
     print("Data loading complete. Shape is %r" % (dataMat['features'].shape,))
     if classification:
         return dataMat['features'][:, :-1], dataMat['features'][:, -1] - 1
